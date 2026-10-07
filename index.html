@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Luyện Thi Trắc Nghiệm Y Khoa</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="showDashboard()">
+                    <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-md">
+                        <i class="fa-solid fa-graduation-cap text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-600">
+                            MED-TEST PLATFORM
+                        </span>
+                        <span class="block text-xs text-slate-500 font-medium">Hệ thống Luyện thi Y khoa Multi-Module</span>
+                    </div>
+                </div>
+
+                <!-- Live Timer in Exam View -->
+                <div id="examTimerContainer" class="hidden items-center bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl">
+                    <i class="fa-regular fa-clock text-blue-600 mr-2 text-lg"></i>
+                    <span class="text-xs text-slate-500 font-semibold uppercase mr-2">Thời gian:</span>
+                    <span id="timerDisplay" class="font-mono text-lg font-bold text-slate-800">00:00</span>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button onclick="openImportModal()" class="flex items-center space-x-2 bg-blue-50 text-blue-700 hover:bg-blue-100 px-3.5 py-2 rounded-xl text-sm font-semibold transition">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                        <span>Nạp Đề Mới (JSON)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+        <!-- DASHBOARD VIEW -->
+        <div id="viewDashboard" class="space-y-6">
+            <!-- Top Banner -->
+            <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800 text-white p-6 sm:p-8 rounded-2xl shadow-lg relative overflow-hidden">
+                <div class="relative z-10 max-w-2xl">
+                    <span class="inline-block bg-white/20 backdrop-blur-md text-white text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider mb-3">
+                        Hệ Thống Trắc Nghiệm Đa Module
+                    </span>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2">
+                        Ngân Hàng Đề Thi Y Khoa Tự Do
+                    </h1>
+                    <p class="text-blue-100 text-sm leading-relaxed mb-6">
+                        Nền tảng chủ động ôn luyện trắc nghiệm MCQ 4 đáp án. Nạp các bộ đề thi JSON của bất kỳ module học phần nào để bắt đầu rèn luyện ngay lập tức. Dữ liệu hoàn toàn lưu trên máy của bạn.
+                    </p>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="openImportModal()" class="bg-white text-blue-700 hover:bg-slate-100 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition flex items-center space-x-2">
+                            <i class="fa-solid fa-file-circle-plus"></i>
+                            <span>Nạp Đề Mới (JSON)</span>
+                        </button>
+                    </div>
+                </div>
+                <i class="fa-solid fa-notes-medical absolute -right-6 -bottom-6 text-white/10 text-9xl pointer-events-none"></i>
+            </div>
+
+            <!-- Exam List Table Header -->
+            <div class="flex justify-between items-center pt-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Bảng Chọn Đề Thi</h2>
+                    <p class="text-xs text-slate-500">Danh sách các đề thi bạn đã nạp vào hệ thống</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span id="examCountBadge" class="bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-1 rounded-lg">0 đề thi</span>
+                    <button onclick="clearAllData()" class="text-xs text-rose-600 hover:text-rose-700 font-medium px-2 py-1 rounded hover:bg-rose-50 transition">
+                        Xóa toàn bộ dữ liệu
+                    </button>
+                </div>
+            </div>
+
+            <!-- Exam List Table / Cards -->
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                <th class="py-3.5 px-6">Tên Đề Thi / Học Phần</th>
+                                <th class="py-3.5 px-4 text-center">Số Câu</th>
+                                <th class="py-3.5 px-4 text-center">Thời Gian</th>
+                                <th class="py-3.5 px-4 text-center">Lịch Sử</th>
+                                <th class="py-3.5 px-6 text-right">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="examTableBody" class="divide-y divide-slate-100 text-sm">
+                            <!-- Rendered dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyDashboardState" class="hidden py-16 text-center px-4">
+                    <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-700 mb-1">Chưa có đề thi nào trong hệ thống</h3>
+                    <p class="text-xs text-slate-500 max-w-md mx-auto mb-6">
+                        Hãy tạo mới hoặc nạp file JSON đề thi trắc nghiệm từ khung chat để lưu trực tiếp vào trình duyệt làm bài.
+                    </p>
+                    <button onclick="openImportModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition">
+                        + Nạp Đề Thi JSON Ngay
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- EXAM TESTING VIEW -->
+        <div id="viewExam" class="hidden grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Left Panel: Question Content -->
+            <div class="lg:col-span-3 space-y-4">
+                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative">
+                    <!-- Top Bar inside Question Container -->
+                    <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+                        <span id="questionNumberBadge" class="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                            Câu hỏi 1 / 40
+                        </span>
+                        <button id="flagBtn" onclick="toggleFlagCurrentQuestion()" class="text-xs font-semibold text-slate-400 hover:text-amber-500 flex items-center space-x-1.5 transition">
+                            <i class="fa-regular fa-bookmark"></i>
+                            <span id="flagText">Đánh dấu câu này</span>
+                        </button>
+                    </div>
+
+                    <!-- Question Text -->
+                    <div id="questionText" class="text-base sm:text-lg font-semibold text-slate-800 mb-6 leading-relaxed">
+                        <!-- Render Question -->
+                    </div>
+
+                    <!-- Answer Options -->
+                    <div id="optionsContainer" class="space-y-3">
+                        <!-- Render Options A B C D -->
+                    </div>
+
+                    <!-- Explanation Box (Appears after submission/review) -->
+                    <div id="explanationContainer" class="hidden mt-6 p-4 rounded-xl border border-blue-100 bg-blue-50/60 text-slate-700 text-sm">
+                        <div class="font-bold text-blue-800 mb-1 flex items-center space-x-2">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>Lời giải & Kiến thức cốt lõi:</span>
+                        </div>
+                        <p id="explanationText" class="leading-relaxed"></p>
+                    </div>
+
+                    <!-- Navigation Footer inside Question Container -->
+                    <div class="flex justify-between items-center mt-8 pt-4 border-t border-slate-100">
+                        <button id="prevBtn" onclick="navigateQuestion(-1)" class="px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200 hover:bg-slate-50 transition text-slate-600">
+                            <i class="fa-solid fa-chevron-left mr-1"></i> Câu Trước
+                        </button>
+
+                        <div class="flex space-x-2">
+                            <button id="nextBtn" onclick="navigateQuestion(1)" class="px-5 py-2 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white transition">
+                                Câu Tiếp <i class="fa-solid fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Navigation Map & Submission -->
+            <div class="space-y-4">
+                <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm sticky top-24">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-sm font-bold text-slate-800">Danh Sách Câu Hỏi</h3>
+                        <span id="answeredCounter" class="text-xs text-slate-500 font-medium">0/0 Đã làm</span>
+                    </div>
+
+                    <!-- Map Grid -->
+                    <div id="questionGrid" class="grid grid-cols-5 gap-2 max-h-64 overflow-y-auto custom-scrollbar p-1 mb-5">
+                        <!-- Dynamically populated buttons -->
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="grid grid-cols-2 gap-2 text-xs text-slate-500 mb-5 pt-3 border-t border-slate-100">
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-3 h-3 rounded bg-blue-600 inline-block"></span>
+                            <span>Đã chọn</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-3 h-3 rounded bg-amber-400 inline-block"></span>
+                            <span>Đánh dấu</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-3 h-3 rounded bg-slate-100 border border-slate-300 inline-block"></span>
+                            <span>Chưa làm</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-3 h-3 rounded bg-emerald-500 inline-block"></span>
+                            <span>Đúng (Khi nộp)</span>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div id="examActionButtons" class="space-y-2">
+                        <button onclick="submitExamPrompt()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-sm transition shadow-sm">
+                            Nộp Bài Kiểm Tra
+                        </button>
+                        <button onclick="exitExamPrompt()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 rounded-xl text-sm transition">
+                            Thoát Về Trang Chủ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULT VIEW -->
+        <div id="viewResult" class="hidden max-w-3xl mx-auto space-y-6">
+            <div class="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm text-center">
+                <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <h2 class="text-2xl font-extrabold text-slate-800 mb-1">Kết Quả Bài Làm</h2>
+                <p id="resultExamTitle" class="text-sm text-slate-500 mb-6"></p>
+
+                <!-- Score Board Grid -->
+                <div class="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl mb-6 border border-slate-100">
+                    <div>
+                        <span class="block text-xs text-slate-400 uppercase font-bold">Điểm Số</span>
+                        <span id="resultScore" class="text-2xl font-black text-blue-600">0.0 / 10</span>
+                    </div>
+                    <div>
+                        <span class="block text-xs text-slate-400 uppercase font-bold">Số Câu Đúng</span>
+                        <span id="resultCorrectCount" class="text-2xl font-black text-emerald-600">0/0</span>
+                    </div>
+                    <div>
+                        <span class="block text-xs text-slate-400 uppercase font-bold">Thời Gian Làm</span>
+                        <span id="resultTimeSpent" class="text-2xl font-black text-slate-700">00:00</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-center gap-3">
+                    <button onclick="reviewExamAnswers()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition">
+                        <i class="fa-solid fa-eye mr-2"></i> Xem Lại Chi Tiết Đáp Án
+                    </button>
+                    <button onclick="showDashboard()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-5 py-2.5 rounded-xl text-sm transition">
+                        Trở Về Bảng Chọn Đề Thi
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal: Import New JSON Exam -->
+    <div id="importModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-xl w-full p-6 space-y-4">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-lg">Nạp Đề Thi Mới (JSON)</h3>
+                <button onclick="closeImportModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-2">Dán đoạn mã JSON chứa đề thi mới vào đây:</label>
+                <textarea id="jsonInputText" rows="10" class="w-full font-mono text-xs p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder='{ "id": "de_01", "title": "Đề thi...", "durationMinutes": 30, "questions": [...] }'></textarea>
+            </div>
+            <div class="flex justify-end space-x-3 pt-2">
+                <button onclick="closeImportModal()" class="px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50">Hủy</button>
+                <button onclick="submitJsonImport()" class="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700">Thêm Đề Thi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+        Nền tảng Ôn luyện Y khoa | Hỗ trợ lưu trữ hoàn toàn trên LocalStorage thiết bị của bạn.
+    </footer>
+
+    <!-- Core App Logic Javascript -->
+    <script>
+        // Storage Key
+        const LOCAL_STORAGE_KEY = 'MED_EXAM_STORE_DATA_V2';
+
+        // Master App State
+        let store = {
+            exams: []
+        };
+
+        let currentExam = null;
+        let currentQuestionIndex = 0;
+        let userAnswers = {}; // { qIndex: selectedOptionIndex }
+        let flaggedQuestions = {}; // { qIndex: boolean }
+        let timerInterval = null;
+        let secondsRemaining = 0;
+        let totalTimeSpent = 0;
+        let isReviewMode = false;
+
+        // --- App Initialization ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadStoreData();
+            renderDashboardTable();
+        });
+
+        function loadStoreData() {
+            const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (raw) {
+                try {
+                    store = JSON.parse(raw);
+                } catch(e) {
+                    store = { exams: [] };
+                }
+            } else {
+                store = { exams: [] };
+            }
+        }
+
+        function saveStoreData() {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(store));
+        }
+
+        // --- Dashboard Render ---
+        function renderDashboardTable() {
+            const tbody = document.getElementById('examTableBody');
+            const emptyState = document.getElementById('emptyDashboardState');
+            const examCountBadge = document.getElementById('examCountBadge');
+
+            tbody.innerHTML = '';
+            examCountBadge.textContent = `${store.exams.length} đề thi`;
+
+            if (store.exams.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            store.exams.forEach((exam) => {
+                const duration = exam.durationMinutes || exam.timeMinutes || exam.duration || 30;
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition border-b border-slate-100';
+
+                const historyText = exam.lastScore !== undefined 
+                    ? `<span class="font-bold text-blue-600">${exam.lastScore}/10</span> <span class="text-xs text-slate-400">(${exam.lastCorrect}/${exam.questions.length})</span>` 
+                    : '<span class="text-slate-400 text-xs">Chưa làm</span>';
+
+                tr.innerHTML = `
+                    <td class="py-4 px-6">
+                        <div class="font-bold text-slate-800 text-sm">${escapeHtml(exam.title)}</div>
+                        <div class="text-xs text-slate-400">${escapeHtml(exam.description || 'Không có mô tả')}</div>
+                    </td>
+                    <td class="py-4 px-4 text-center font-semibold text-slate-600 text-xs">${exam.questions ? exam.questions.length : 0} câu</td>
+                    <td class="py-4 px-4 text-center font-semibold text-slate-600 text-xs">${duration} phút</td>
+                    <td class="py-4 px-4 text-center text-xs">${historyText}</td>
+                    <td class="py-4 px-6 text-right space-x-2">
+                        <button onclick="startExam('${exam.id}')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition inline-flex items-center space-x-1">
+                            <i class="fa-solid fa-play text-xs"></i>
+                            <span>Làm Bài</span>
+                        </button>
+                        <button onclick="deleteExam('${exam.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition" title="Xóa đề này">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- Exam Runner Logic ---
+        function startExam(examId) {
+            currentExam = store.exams.find(e => e.id === examId);
+            if (!currentExam || !currentExam.questions || currentExam.questions.length === 0) {
+                alert("Đề thi này chưa có câu hỏi!");
+                return;
+            }
+
+            currentQuestionIndex = 0;
+            userAnswers = {};
+            flaggedQuestions = {};
+            isReviewMode = false;
+
+            const durationMinutes = currentExam.durationMinutes || currentExam.timeMinutes || currentExam.duration || 30;
+            secondsRemaining = durationMinutes * 60;
+            totalTimeSpent = 0;
+
+            document.getElementById('viewDashboard').classList.add('hidden');
+            document.getElementById('viewResult').classList.add('hidden');
+            document.getElementById('viewExam').classList.remove('hidden');
+            document.getElementById('examTimerContainer').classList.remove('hidden');
+            document.getElementById('examTimerContainer').classList.add('flex');
+            document.getElementById('explanationContainer').classList.add('hidden');
+
+            startTimer();
+            renderQuestionMap();
+            renderCurrentQuestion();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                secondsRemaining--;
+                totalTimeSpent++;
+                updateTimerDisplay();
+
+                if (secondsRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    alert("Đã hết thời gian làm bài! Hệ thống sẽ tự động nộp bài.");
+                    submitExam();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(secondsRemaining / 60);
+            const s = secondsRemaining % 60;
+            document.getElementById('timerDisplay').textContent = 
+                `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function renderCurrentQuestion() {
+            const q = currentExam.questions[currentQuestionIndex];
+            if (!q) return;
+
+            document.getElementById('questionNumberBadge').textContent = 
+                `Câu hỏi ${currentQuestionIndex + 1} / ${currentExam.questions.length}`;
+
+            // Helper parser for text and options flexibly
+            const qText = q.text || q.question || '';
+            const optionsList = q.options || q.choices || [];
+
+            document.getElementById('questionText').textContent = qText;
+
+            // Flag state
+            const isFlagged = !!flaggedQuestions[currentQuestionIndex];
+            const flagBtn = document.getElementById('flagBtn');
+            if (isFlagged) {
+                flagBtn.className = "text-xs font-semibold text-amber-500 flex items-center space-x-1.5";
+                document.getElementById('flagText').textContent = "Đã đánh dấu";
+            } else {
+                flagBtn.className = "text-xs font-semibold text-slate-400 hover:text-amber-500 flex items-center space-x-1.5";
+                document.getElementById('flagText').textContent = "Đánh dấu câu này";
+            }
+
+            // Options rendering
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = '';
+
+            const prefixes = ['A', 'B', 'C', 'D'];
+            const correctIdx = q.correctIndex !== undefined ? q.correctIndex : q.correct;
+
+            optionsList.forEach((optText, optIdx) => {
+                const btn = document.createElement('div');
+                const isSelected = userAnswers[currentQuestionIndex] === optIdx;
+
+                let stateClasses = "border-slate-200 hover:border-blue-300 hover:bg-slate-50";
+
+                if (isReviewMode) {
+                    if (optIdx === correctIdx) {
+                        stateClasses = "border-emerald-500 bg-emerald-50/80 text-emerald-900 font-medium";
+                    } else if (isSelected && isSelected !== (optIdx === correctIdx)) {
+                        stateClasses = "border-rose-400 bg-rose-50 text-rose-900";
+                    } else {
+                        stateClasses = "border-slate-200 opacity-60";
+                    }
+                } else if (isSelected) {
+                    stateClasses = "border-blue-600 bg-blue-50/80 text-blue-900 font-semibold shadow-sm";
+                }
+
+                btn.className = `p-4 border-2 rounded-xl text-sm flex items-start space-x-3 cursor-pointer transition ${stateClasses}`;
+                
+                if (!isReviewMode) {
+                    btn.onclick = () => selectOption(optIdx);
+                }
+
+                btn.innerHTML = `
+                    <span class="w-6 h-6 rounded-lg font-bold text-xs flex items-center justify-center shrink-0 border ${isSelected ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-100 text-slate-600 border-slate-200'}">
+                        ${prefixes[optIdx] || optIdx + 1}
+                    </span>
+                    <span class="leading-relaxed pt-0.5">${escapeHtml(optText)}</span>
+                `;
+                container.appendChild(btn);
+            });
+
+            // Explanation box in review mode
+            const expContainer = document.getElementById('explanationContainer');
+            if (isReviewMode && q.explanation) {
+                expContainer.classList.remove('hidden');
+                document.getElementById('explanationText').textContent = q.explanation;
+            } else {
+                expContainer.classList.add('hidden');
+            }
+
+            // Prev/Next disable logic
+            document.getElementById('prevBtn').disabled = (currentQuestionIndex === 0);
+            document.getElementById('prevBtn').style.opacity = (currentQuestionIndex === 0) ? '0.5' : '1';
+
+            updateMapHighlight();
+        }
+
+        function selectOption(optIdx) {
+            userAnswers[currentQuestionIndex] = optIdx;
+            renderCurrentQuestion();
+            renderQuestionMap();
+        }
+
+        function toggleFlagCurrentQuestion() {
+            flaggedQuestions[currentQuestionIndex] = !flaggedQuestions[currentQuestionIndex];
+            renderCurrentQuestion();
+            renderQuestionMap();
+        }
+
+        function navigateQuestion(delta) {
+            const nextIdx = currentQuestionIndex + delta;
+            if (nextIdx >= 0 && nextIdx < currentExam.questions.length) {
+                currentQuestionIndex = nextIdx;
+                renderCurrentQuestion();
+            }
+        }
+
+        function jumpToQuestion(index) {
+            currentQuestionIndex = index;
+            renderCurrentQuestion();
+        }
+
+        function renderQuestionMap() {
+            const grid = document.getElementById('questionGrid');
+            grid.innerHTML = '';
+
+            let answeredCount = 0;
+
+            currentExam.questions.forEach((q, idx) => {
+                const isAns = userAnswers[idx] !== undefined;
+                if (isAns) answeredCount++;
+
+                const isFlag = flaggedQuestions[idx];
+                const btn = document.createElement('button');
+
+                let btnStyle = "bg-slate-100 border-slate-200 text-slate-600";
+
+                const correctIdx = q.correctIndex !== undefined ? q.correctIndex : q.correct;
+
+                if (isReviewMode) {
+                    if (userAnswers[idx] === correctIdx) {
+                        btnStyle = "bg-emerald-500 text-white font-bold";
+                    } else {
+                        btnStyle = "bg-rose-500 text-white font-bold";
+                    }
+                } else {
+                    if (isAns) btnStyle = "bg-blue-600 text-white font-bold";
+                    if (isFlag) btnStyle += " ring-2 ring-amber-400";
+                }
+
+                btn.className = `w-full h-8 rounded-lg text-xs font-semibold border flex items-center justify-center transition ${btnStyle}`;
+                btn.textContent = idx + 1;
+                btn.onclick = () => jumpToQuestion(idx);
+
+                grid.appendChild(btn);
+            });
+
+            document.getElementById('answeredCounter').textContent = `${answeredCount}/${currentExam.questions.length} Đã làm`;
+        }
+
+        function updateMapHighlight() {
+            const buttons = document.getElementById('questionGrid').children;
+            for (let i = 0; i < buttons.length; i++) {
+                if (i === currentQuestionIndex) {
+                    buttons[i].classList.add('scale-105', 'ring-2', 'ring-blue-400');
+                } else {
+                    buttons[i].classList.remove('scale-105', 'ring-2', 'ring-blue-400');
+                }
+            }
+        }
+
+        function submitExamPrompt() {
+            const totalQ = currentExam.questions.length;
+            const ansCount = Object.keys(userAnswers).length;
+
+            if (ansCount < totalQ) {
+                if (!confirm(`Bạn mới trả lời ${ansCount}/${totalQ} câu hỏi. Bạn có chắc chắn muốn nộp bài sớm?`)) {
+                    return;
+                }
+            } else {
+                if (!confirm("Bạn có chắc chắn muốn nộp bài thi?")) {
+                    return;
+                }
+            }
+            submitExam();
+        }
+
+        function submitExam() {
+            clearInterval(timerInterval);
+
+            // Grade calculation
+            let correctCount = 0;
+            currentExam.questions.forEach((q, idx) => {
+                const correctIdx = q.correctIndex !== undefined ? q.correctIndex : q.correct;
+                if (userAnswers[idx] === correctIdx) {
+                    correctCount++;
+                }
+            });
+
+            const score = ((correctCount / currentExam.questions.length) * 10).toFixed(1);
+
+            // Save history to store
+            currentExam.lastScore = score;
+            currentExam.lastCorrect = correctCount;
+            saveStoreData();
+
+            // Display Results
+            document.getElementById('viewExam').classList.add('hidden');
+            document.getElementById('examTimerContainer').classList.add('hidden');
+            document.getElementById('viewResult').classList.remove('hidden');
+
+            document.getElementById('resultExamTitle').textContent = currentExam.title;
+            document.getElementById('resultScore').textContent = `${score} / 10`;
+            document.getElementById('resultCorrectCount').textContent = `${correctCount}/${currentExam.questions.length}`;
+
+            const timeSpentMinutes = Math.floor(totalTimeSpent / 60);
+            const timeSpentSecs = totalTimeSpent % 60;
+            document.getElementById('resultTimeSpent').textContent = 
+                `${timeSpentMinutes}m ${timeSpentSecs}s`;
+        }
+
+        function reviewExamAnswers() {
+            isReviewMode = true;
+            currentQuestionIndex = 0;
+
+            document.getElementById('viewResult').classList.add('hidden');
+            document.getElementById('viewExam').classList.remove('hidden');
+
+            renderQuestionMap();
+            renderCurrentQuestion();
+        }
+
+        function exitExamPrompt() {
+            if (!isReviewMode && confirm("Bạn có chắc muốn thoát? Kết quả chưa nộp sẽ không được tính.")) {
+                clearInterval(timerInterval);
+                showDashboard();
+            } else if (isReviewMode) {
+                showDashboard();
+            }
+        }
+
+        function showDashboard() {
+            clearInterval(timerInterval);
+            document.getElementById('viewExam').classList.add('hidden');
+            document.getElementById('viewResult').classList.add('hidden');
+            document.getElementById('examTimerContainer').classList.add('hidden');
+            document.getElementById('viewDashboard').classList.remove('hidden');
+            renderDashboardTable();
+        }
+
+        // --- JSON Importer Modal Logic ---
+        function openImportModal() {
+            document.getElementById('importModal').classList.remove('hidden');
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.add('hidden');
+            document.getElementById('jsonInputText').value = '';
+        }
+
+        function submitJsonImport() {
+            const rawText = document.getElementById('jsonInputText').value.trim();
+            if (!rawText) {
+                alert("Vui lòng dán mã JSON vào ô!");
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(rawText);
+                let newExams = [];
+
+                if (Array.isArray(parsed)) {
+                    newExams = parsed;
+                } else if (parsed && typeof parsed === 'object') {
+                    newExams = [parsed];
+                }
+
+                if (newExams.length === 0) {
+                    throw new Error("Dữ liệu JSON không hợp lệ");
+                }
+
+                // Add to store
+                newExams.forEach(e => {
+                    if (!e.id) e.id = 'exam_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+                    // Filter duplicates by id
+                    store.exams = store.exams.filter(old => old.id !== e.id);
+                    store.exams.push(e);
+                });
+
+                saveStoreData();
+                closeImportModal();
+                renderDashboardTable();
+                alert(`Đã nạp thành công ${newExams.length} đề thi mới!`);
+            } catch (err) {
+                alert("Lỗi cú pháp JSON! Vui lòng kiểm tra lại cấu trúc file dán vào.");
+            }
+        }
+
+        function deleteExam(examId) {
+            if (confirm("Bạn có chắc chắn muốn xóa đề thi này khỏi hệ thống?")) {
+                store.exams = store.exams.filter(e => e.id !== examId);
+                saveStoreData();
+                renderDashboardTable();
+            }
+        }
+
+        function clearAllData() {
+            if (confirm("Thao tác này sẽ xóa toàn bộ đề thi đã nạp. Bạn có chắc chắn không?")) {
+                store.exams = [];
+                saveStoreData();
+                renderDashboardTable();
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+    </script>
+</body>
+</html>
